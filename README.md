@@ -4,7 +4,7 @@ Run gluster-swift inside a docker container.
 ## Building
 
 ```bash
-# docker build --rm --tag prashanthpai/gluster-swift:dev .
+# docker build --rm --tag gluster-swift .
 ```
 
 ## Running
@@ -18,10 +18,16 @@ respectively. This directory on the host machine containing all the individual
 glusterfs mounts is then bind-mounted inside the container. This avoids having
 to bind mount individual gluster volumes.
 
+The same needs to be updated in etc/sysconfig/swift-volumes.
+For example(in swift-volumes):
+GLUSTER_VOLUMES='tv1'
+
+Where tv1 is the volume name.
+
 **Example:**
 
 ```bash
-# docker run -d -p 8080:8080 -v /mnt/gluster-object:/mnt/gluster-object -e GLUSTER_VOLUMES="test test2" prashanthpai/gluster-swift:dev
+# docker run -d --privileged  -v /sys/fs/cgroup/:/sys/fs/cgroup/:ro -p 8080:8080 -v /mnt/gluster-object:/mnt/gluster-object    gluster-swift
 ```
 
 If you have selinux set to enforced on the host machine, refer to the
