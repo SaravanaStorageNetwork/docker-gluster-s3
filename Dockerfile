@@ -5,24 +5,26 @@ MAINTAINER Prashanth Pai <ppai@redhat.com>
 # All subsequent actual packages come from the CentOS Cloud SIG repo:
 # http://mirror.centos.org/centos/7/cloud/x86_64/
 
-# epel-release is needed to install supervisor.
-# Traditionally a docker container runs a single process when it is launched.
-# When you want to run more than one process in a container, you can use an
-# external process management tool such as the supervisor (supervisord.org)
-
 # Install PACO servers and S3 middleware.
-# Install supervisor
 # Install gluster-swift dependencies. To be removed when RPMs become available.
 # Clean downloaded packages and index
 
-RUN yum --setopt=tsflags=nodocs -y update && \
-    yum --setopt=tsflags=nodocs -y install \
+RUN yum -v --setopt=tsflags=nodocs -y update && \
+    yum -v --setopt=tsflags=nodocs -y install \
         centos-release-openstack-kilo \
         epel-release && \
-    yum --setopt=tsflags=nodocs -y install \
+    yum -v --setopt=tsflags=nodocs -y install \
         openstack-swift openstack-swift-{proxy,account,container,object,plugin-swift3} \
-        supervisor \
         git memcached python-prettytable && \
+    yum -y install systemd && \
+        (cd /lib/systemd/system/sysinit.target.wants/; for i in *; do [ $i == systemd-tmpfiles-setup.service ] || rm -f $i; done); \
+        rm -f /lib/systemd/system/multi-user.target.wants/*;\
+        rm -f /etc/systemd/system/*.wants/*;\
+        rm -f /lib/systemd/system/local-fs.target.wants/*; \
+        rm -f /lib/systemd/system/sockets.target.wants/*udev*; \
+        rm -f /lib/systemd/system/sockets.target.wants/*initctl*; \
+        rm -f /lib/systemd/system/basic.target.wants/*;\
+        rm -f /lib/systemd/system/anaconda.target.wants/* && \
     yum -y clean all
 
 # Install gluster-swift from source.
@@ -35,19 +37,15 @@ RUN git clone git://review.gluster.org/gluster-swift /tmp/gluster-swift && \
 # Gluster volumes will be mounted *under* this directory.
 VOLUME /mnt/gluster-object
 
-# Configure supervisord
-RUN mkdir -p /etc/supervisor /var/log/supervisor
-COPY supervisord.conf /etc/supervisor/supervisord.conf
+# volumes to be exposed as object storage is present in swift-volumes file
+COPY etc/sysconfig/swift-volumes /etc/sysconfig/
 
-# If any of the processes run by supervisord dies, kill supervisord
-# as well, thus terminating the container.
-COPY supervisor_suicide.py /usr/local/bin/supervisor_suicide.py
-RUN chmod +x /usr/local/bin/supervisor_suicide.py
-
-# Copy script. This will check and generate ring files and will invoke
-# supervisord which starts the required gluster-swift services.
-COPY swift-start.sh /usr/local/bin/swift-start.sh
-RUN chmod +x /usr/local/bin/swift-start.sh
+# Copy systemd scripts
+COPY swift-gen-builders.service /lib/systemd/system/
+COPY swift-proxy.service /lib/systemd/system/
+COPY swift-account.service /lib/systemd/system/
+COPY swift-container.service /lib/systemd/system/
+COPY swift-object.service /lib/systemd/system/
 
 # Replace openstack swift conf files with local gluster-swift ones
 COPY etc/swift/* /etc/swift/
@@ -55,4 +53,13 @@ COPY etc/swift/* /etc/swift/
 # The proxy server listens on port 8080
 EXPOSE 8080
 
-CMD /usr/local/bin/swift-start.sh
+RUN echo 'root:password' | chpasswd
+VOLUME [ "/sys/fs/cgroup" ]
+
+RUN systemctl enable swift-gen-builders.service
+RUN systemctl enable memcached.service
+RUN systemctl enable swift-proxy.service
+RUN systemctl enable swift-account.service
+RUN systemctl enable swift-container.service
+RUN systemctl enable swift-object.service
+CMD ["/usr/sbin/init"]
