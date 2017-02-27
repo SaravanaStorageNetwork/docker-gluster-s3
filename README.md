@@ -1,5 +1,8 @@
+
 # docker-gluster-swift
-Run gluster-swift inside a docker container.
+docker-gluster-swift is to provide object interface for a Gluster volume.
+
+Let us see how to run gluster-swift inside a docker container.
 
 ## Building
 
