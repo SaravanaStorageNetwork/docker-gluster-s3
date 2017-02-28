@@ -1,5 +1,5 @@
 FROM centos:7
-MAINTAINER Prashanth Pai <ppai@redhat.com>
+MAINTAINER Saravanakumar Arumugam <sarumuga@redhat.com>
 
 # centos-release-openstack-kilo package resides in the extras repo.
 # All subsequent actual packages come from the CentOS Cloud SIG repo:
