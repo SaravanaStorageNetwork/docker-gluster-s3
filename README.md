@@ -1,8 +1,8 @@
 
-# docker-gluster-swift
-docker-gluster-swift is to provide object interface for a Gluster volume.
+# docker-gluster-s3
+docker-gluster-s3 is to provide object interface for a Gluster volume.
 
-Let us see how to run gluster-swift inside a docker container.
+Let us see how to run gluster-s3 inside a docker container.
 
 ## Building
 
